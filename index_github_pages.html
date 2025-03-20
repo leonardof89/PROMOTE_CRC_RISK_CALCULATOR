@@ -1,0 +1,91 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>CRC Risk Calculator</title>
+  <style>
+    body { font-family: sans-serif; background: #f9f9f9; padding: 2rem; }
+    .container { max-width: 700px; margin: auto; background: white; padding: 2rem; border-radius: 1rem; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+    select, button { width: 100%; padding: 10px; margin-top: 10px; }
+    .result { margin-top: 20px; padding: 1rem; background: #eef; border-radius: 0.5rem; text-align: center; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>CRC Risk Calculator (Vanilla JS)</h2>
+
+    <label>Patient age</label>
+    <select id="ageGroup">
+      <option value="0">&lt;50y (reference)</option>
+      <option value="1">50–59y</option>
+      <option value="2">60–69y</option>
+      <option value="3">≥70y</option>
+    </select>
+
+    <label>Clinical indication</label>
+    <select id="indication">
+      <optgroup label="Urgent">
+        <option value="urgent1">New-onset normo-microcytic anemia (Hgb <10 g/dL) in subjects ≥40 y.o.</option>
+        <option value="urgent2">Persistent rectal bleeding, non-infectious bloody diarrhea</option>
+        <option value="urgent3">Clinical and/or instrumental suspicion of CRC</option>
+      </optgroup>
+      <optgroup label="Deferrable">
+        <option value="def1">Iron-deficiency anemia</option>
+        <option value="def2">Non-infectious diarrhea ≥30 days</option>
+        <option value="def3">Hematochezia (minor bleeding)</option>
+        <option value="def4">Imaging findings suggestive for colonic disease</option>
+        <option value="def5">FOBT+ in asymptomatic patient</option>
+        <option value="def6">Abdominal pain + bowel habit change ≥50y</option>
+        <option value="def7">Pre-transplantation screening</option>
+      </optgroup>
+      <optgroup label="Nonurgent">
+        <option value="nonurgent">Change in bowel habit ≥3 months in &lt;50y without alarm features</option>
+      </optgroup>
+    </select>
+
+    <label>Previous colonoscopy in last 10y?</label>
+    <select id="colonoscopy">
+      <option value="yes">Yes</option>
+      <option value="no">No</option>
+    </select>
+
+    <button onclick="calculateRisk()">Calculate Risk</button>
+
+    <div class="result" id="resultBox" style="display:none;">
+      <p id="riskResult"></p>
+      <p id="recommendation"></p>
+    </div>
+  </div>
+
+  <script>
+    function calculateRisk() {
+      const ageGroup = parseInt(document.getElementById('ageGroup').value);
+      const indication = document.getElementById('indication').value;
+      const colonoscopy = document.getElementById('colonoscopy').value;
+
+      let logit = Math.log(0.0014987);
+
+      if (ageGroup === 1) logit += Math.log(1.888814);
+      else if (ageGroup === 2) logit += Math.log(3.866429);
+      else if (ageGroup === 3) logit += Math.log(5.352766);
+
+      if (indication.startsWith('urgent')) logit += Math.log(16.12472);
+      else if (indication.startsWith('def')) logit += Math.log(3.437732);
+      // nonurgent = reference
+
+      if (colonoscopy === 'no') logit += Math.log(2.919149);
+
+      const probability = 1 / (1 + Math.exp(-logit));
+      const percentage = (probability * 100).toFixed(2);
+
+      document.getElementById('riskResult').innerText = `Estimated CRC Risk: ${percentage}%`;
+      document.getElementById('recommendation').innerText =
+        percentage >= 5
+          ? 'Risk ≥5% → Colonoscopy indicated'
+          : 'Risk <5% → Consider avoiding or deferring colonoscopy';
+      document.getElementById('resultBox').style.display = 'block';
+    }
+  </script>
+</body>
+</html>
