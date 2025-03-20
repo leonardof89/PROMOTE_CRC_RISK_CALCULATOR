@@ -1,0 +1,103 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>CRC Risk Calculator</title>
+  <script src="https://cdn.jsdelivr.net/npm/react@17/umd/react.production.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/react-dom@17/umd/react-dom.production.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@babel/standalone/babel.min.js"></script>
+  <style>
+    body { font-family: sans-serif; background: #f9f9f9; padding: 2rem; }
+    .container { max-width: 700px; margin: auto; background: white; padding: 2rem; border-radius: 1rem; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+    select, button { width: 100%; padding: 10px; margin-top: 10px; }
+    .result { margin-top: 20px; padding: 1rem; background: #eef; border-radius: 0.5rem; text-align: center; }
+    optgroup { font-weight: bold; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    function CRCRiskCalculator() {
+      const [ageGroup, setAgeGroup] = React.useState(0);
+      const [indication, setIndication] = React.useState("");
+      const [previousColonoscopy, setPreviousColonoscopy] = React.useState(false);
+      const [risk, setRisk] = React.useState(null);
+
+      const indicationMap = {
+        "New-onset normo-microcytic anemia (Hgb <10 g/dL) in subjects ≥40 y.o.": "Urgent",
+        "Persistent rectal bleeding (bleeding hemorrhoids excluded), non-infectious bloody diarrhea": "Urgent",
+        "Clinical and/or instrumental suspicion of CRC": "Urgent",
+        "Iron-deficiency anemia": "Deferrable",
+        "Non-infectious diarrhea persisting for ≥30 days": "Deferrable",
+        "Hematochezia (minor bleeding)": "Deferrable",
+        "Imaging findings suggestive for colonic disease": "Deferrable",
+        "FOBT+ in asymptomatic patient": "Deferrable",
+        "Abdominal pain and change in bowel habit in subjects ≥50 y.o. (never assessed with colonoscopy)": "Deferrable",
+        "Pre-transplantation screening": "Deferrable",
+        "Relevant and persistent change in bowel habit for ≥3 months in subjects <50 y.o., without alarm features, unresponsive to empirical therapy": "Nonurgent"
+      };
+
+      const calculateRisk = () => {
+        let logit = Math.log(0.0014987);
+        if (ageGroup === 1) logit += Math.log(1.888814);
+        else if (ageGroup === 2) logit += Math.log(3.866429);
+        else if (ageGroup === 3) logit += Math.log(5.352766);
+        const capGroup = indicationMap[indication];
+        if (capGroup === "Urgent") logit += Math.log(16.12472);
+        else if (capGroup === "Deferrable") logit += Math.log(3.437732);
+        if (!previousColonoscopy) logit += Math.log(2.919149);
+        const probability = 1 / (1 + Math.exp(-logit));
+        setRisk((probability * 100).toFixed(2));
+      };
+
+      return (
+        <div className="container">
+          <h2>CRC Risk Calculator</h2>
+          <label>Patient age</label>
+          <select value={ageGroup} onChange={e => setAgeGroup(parseInt(e.target.value))}>
+            <option value={0}>&lt;50y (reference)</option>
+            <option value={1}>50–59y</option>
+            <option value={2}>60–69y</option>
+            <option value={3}>≥70y</option>
+          </select>
+          <label>Clinical indication</label>
+          <select value={indication} onChange={e => setIndication(e.target.value)}>
+            <option value="">-- Select an indication --</option>
+            <optgroup label="Urgent">
+              <option>New-onset normo-microcytic anemia (Hgb <10 g/dL) in subjects ≥40 y.o.</option>
+              <option>Persistent rectal bleeding (bleeding hemorrhoids excluded), non-infectious bloody diarrhea</option>
+              <option>Clinical and/or instrumental suspicion of CRC</option>
+            </optgroup>
+            <optgroup label="Deferrable">
+              <option>Iron-deficiency anemia</option>
+              <option>Non-infectious diarrhea persisting for ≥30 days</option>
+              <option>Hematochezia (minor bleeding)</option>
+              <option>Imaging findings suggestive for colonic disease</option>
+              <option>FOBT+ in asymptomatic patient</option>
+              <option>Abdominal pain and change in bowel habit in subjects ≥50 y.o. (never assessed with colonoscopy)</option>
+              <option>Pre-transplantation screening</option>
+            </optgroup>
+            <optgroup label="Nonurgent">
+              <option>Relevant and persistent change in bowel habit for ≥3 months in subjects <50 y.o., without alarm features, unresponsive to empirical therapy</option>
+            </optgroup>
+          </select>
+          <label>Previous colonoscopy in last 10y?</label>
+          <select value={previousColonoscopy ? "yes" : "no"} onChange={e => setPreviousColonoscopy(e.target.value === "yes")}>
+            <option value="yes">Yes</option>
+            <option value="no">No</option>
+          </select>
+          <button onClick={calculateRisk}>Calculate Risk</button>
+          {risk !== null && (
+            <div className="result">
+              <p>Estimated CRC Risk: <strong>{risk}%</strong></p>
+              <p>{risk >= 5 ? "Risk ≥5% → Colonoscopy indicated" : "Risk <5% → Consider avoiding or deferring colonoscopy"}</p>
+            </div>
+          )}
+        </div>
+      );
+    }
+    ReactDOM.render(<CRCRiskCalculator />, document.getElementById("root"));
+  </script>
+</body>
+</html>
